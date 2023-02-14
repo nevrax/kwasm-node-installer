@@ -26,8 +26,11 @@ spec:
             name: entrypoint
             defaultMode: 0744
       initContainers:
-        - image: ghcr.io/kwasm/kwasm-node-installer:main
+        - image: 0xe282b0/kwasm-node-installer
           name: kwasm-initializer
+          command:
+            - sh
+            - /script/docker-desktop.sh
           env:
             - name: NODE_ROOT
               value: /mnt/node-root
