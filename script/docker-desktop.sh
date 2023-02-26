@@ -2,7 +2,9 @@
 set -euo pipefail
 
 # Prevent restart loop, only on firstrun
-if [ ! -d /$NODE_ROOT/opt/kwasm ]; then
+CRI_DOCKERD_TARGET_SHA256=$(nsenter -m/$NODE_ROOT/proc/1/ns/mnt -- sha256sum /var/lib/kube-binary-cache-debian/cri-dockerd |  awk '{print $1}')
+CRI_DOCKERD_SOURCE_SHA256=$(sha256sum /assets/cri-dockerd | awk '{print $1}')
+if [ CRI_DOCKERD_TARGET_SHA256 != CRI_DOCKERD_SOURCE_SHA256 ]; then
     # Copy assets to docker rootfs
     cp -r /assets /$NODE_ROOT/opt/kwasm
     # Replace cri-dockerd
