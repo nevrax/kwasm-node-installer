@@ -25,7 +25,7 @@ case $1 in
         ln -sf $KWASM_DIR/lib/libwasmtime.so $NODE_ROOT/lib/libwasmtime.so
         ;;
     *)
-    #wasmedge)
+    wasmedge)
         cp /assets/crun-wasmedge $NODE_ROOT$KWASM_DIR/bin/crun && \
         cp /assets/libwasmedge.so $NODE_ROOT$KWASM_DIR/lib/libwasmedge.so && \
         ln -sf $KWASM_DIR/lib/libwasmedge.so $NODE_ROOT/lib/libwasmedge.so && \

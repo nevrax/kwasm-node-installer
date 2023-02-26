@@ -20,8 +20,22 @@ FROM ubuntu:18.04 as builder-containerd-shim
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y curl
-RUN curl -L https://github.com/deislabs/containerd-wasm-shims/releases/download/v0.4.0/containerd-wasm-shims-v1-linux-$(uname -m).tar.gz | tar -xzf - \
-    && curl -L https://github.com/second-state/runwasi/releases/download/v0.3.2/containerd-shim-wasmedge-v1-v0.3.2-linux-$(uname -m | sed s/aarch64/arm64/g | sed s/x86_64/amd64/g).tar.gz | tar -xzf -
+RUN curl -L https://github.com/deislabs/containerd-wasm-shims/releases/download/v0.4.0/containerd-wasm-shims-v1-linux-$(uname -m).tar.gz | tar -xzf - 
+    # && curl -L https://github.com/second-state/runwasi/releases/download/v0.3.2/containerd-shim-wasmedge-v1-v0.3.2-linux-$(uname -m | sed s/aarch64/arm64/g | sed s/x86_64/amd64/g).tar.gz | tar -xzf -
+
+FROM ubuntu:18.04 as builder-containerd-shim-wasmedge
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y git curl libclang-dev python3 \
+    && curl https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash \
+    && echo "$HOME/.wasmedge/lib" > /etc/ld.so.conf.d/libwasmedge.conf \
+    && ldconfig \
+    && git clone --depth 1 --branch fix-stale-shim https://github.com/0xE282B0/runwasi.git
+WORKDIR /runwasi
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup && chmod +x ./rustup \
+    && ./rustup -y 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y make build-essential clang \
+    && bash -c "source ~/.cargo/env && rustup default nightly && make build FEATURES=wasmedge"
 
 FROM ubuntu:18.04 as builder-curl
 
@@ -62,7 +76,7 @@ COPY --link --from=builder-crun /usr/local/lib/libwasmedge.so /assets/libwasmedg
 COPY --link --from=builder-crun /usr/local/lib/libwasmtime.so /assets/libwasmtime.so
 COPY --link --from=builder-containerd-shim /containerd-shim-slight-v1 /assets/containerd-shim-slight-v1
 COPY --link --from=builder-containerd-shim /containerd-shim-spin-v1 /assets/containerd-shim-spin-v1
-COPY --link --from=builder-containerd-shim /containerd-shim-wasmedge-v1 /assets/containerd-shim-wasmedge-v1
+COPY --link --from=builder-containerd-shim-wasmedge /runwasi/target/debug/containerd-shim-wasmedge-v1 /assets/containerd-shim-wasmedge-v1
 COPY --link --from=builder-cri-dockerd /cri-dockerd/bin/cri-dockerd /assets/cri-dockerd
 COPY --link --from=builder-curl /curl* /assets/curl
 
